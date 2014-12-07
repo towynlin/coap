@@ -7,7 +7,7 @@ import qualified Data.ByteString.Lazy as B
 data CoAPMessage = CoAPMessage {
   version     :: Word8,
   messageType :: CoAPMessageType,
-  code        :: Int,
+  code        :: Word8,
   messageID   :: Int,
   token       :: Int
 } deriving (Show)
@@ -15,12 +15,12 @@ data CoAPMessage = CoAPMessage {
 data CoAPMessageType = CON | NON | ACK | RST
   deriving (Show)
 
-makeCoAP :: Word8 -> CoAPMessageType -> Int -> Int -> Int -> CoAPMessage
+makeCoAP :: Word8 -> CoAPMessageType -> Word8 -> Int -> Int -> CoAPMessage
 makeCoAP v t c mid tok =
   CoAPMessage { version = v, messageType = t, code = c, messageID = mid, token = tok }
 
 parseCoAP :: B.ByteString -> CoAPMessage
-parseCoAP bs = makeCoAP (coapVersion bs) (coapMessageType bs) 0 0 0
+parseCoAP bs = makeCoAP (coapVersion bs) (coapMessageType bs) (coapCode bs) 0 0
 
 coapVersion :: B.ByteString -> Word8
 coapVersion bs = shiftR (B.head bs) 6
@@ -32,6 +32,9 @@ coapMessageType bs =
             2 -> ACK
             3 -> RST
   where t = shiftR (B.head bs) 4 .&. 3
+
+coapCode :: B.ByteString -> Word8
+coapCode = B.head . B.tail
 
 main :: IO ()
 main = B.getContents >>= \bs -> putStr . show $ parseCoAP bs
