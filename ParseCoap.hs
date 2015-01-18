@@ -8,33 +8,33 @@ data CoAPMessage = CoAPMessage {
   version     :: Word8,
   messageType :: CoAPMessageType,
   code        :: Word8,
-  messageID   :: Int,
+  messageID   :: Word16,
   token       :: Int
 } deriving (Show)
 
 data CoAPMessageType = CON | NON | ACK | RST
   deriving (Show)
 
-makeCoAP :: Word8 -> CoAPMessageType -> Word8 -> Int -> Int -> CoAPMessage
-makeCoAP v t c mid tok =
-  CoAPMessage { version = v, messageType = t, code = c, messageID = mid, token = tok }
-
 parseCoAP :: B.ByteString -> CoAPMessage
-parseCoAP bs = makeCoAP (coapVersion bs) (coapMessageType bs) (coapCode bs) 0 0
+parseCoAP bs = CoAPMessage (parseVersion bs) (parseMessageType bs) (parseCode bs) (parseMessageID bs) 0
 
-coapVersion :: B.ByteString -> Word8
-coapVersion bs = shiftR (B.head bs) 6
+parseVersion :: B.ByteString -> Word8
+parseVersion bs = shiftR (B.head bs) 6
 
-coapMessageType :: B.ByteString -> CoAPMessageType
-coapMessageType bs =
+parseMessageType :: B.ByteString -> CoAPMessageType
+parseMessageType bs =
   case t of 0 -> CON
             1 -> NON
             2 -> ACK
             3 -> RST
   where t = shiftR (B.head bs) 4 .&. 3
 
-coapCode :: B.ByteString -> Word8
-coapCode = B.head . B.tail
+parseCode :: B.ByteString -> Word8
+parseCode bs = B.index bs 1
+
+parseMessageID :: B.ByteString -> Word16
+parseMessageID bs = shiftL (index16 2) 8 + index16 3
+  where index16 i = fromIntegral (B.index bs i) :: Word16
 
 main :: IO ()
 main = B.getContents >>= \bs -> putStr . show $ parseCoAP bs
